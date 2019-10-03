@@ -1,71 +1,60 @@
-import sortedcollections
+from queue import PriorityQueue
+import heapq
+#const that is bigger than biggest edge
+INF = 10**9 + 1
+
 with open('input.txt', 'r') as input:
-    line = input.readline().split()
-    nodes = int(line[0])
-    edges = int(line[1])
+    nodes, edges = map(int, input.readline().split())
     graph = []
     for node in range(nodes):
         graph.append([])
-    line = input.readline().split()
-    clients = set()
-    for client in line:
-        clients.add(int(client)-1)
+    clients = set(map(lambda x: int(x) - 1, input.readline().split()))
 
     for edge in range(edges):
-        line = input.readline().split()
-        node1 = int(line[0]) - 1
-        node2 = int(line[1]) - 1
-        weight = int(line[2])
+        node1, node2, weight = map(int, input.readline().split())
+        node1 -= 1
+        node2 -= 1
         graph[node1].append((node2, weight))
         graph[node2].append((node1, weight))
 
 
-def dextra(start):
+def dijkstra(start):
     global max_dist
-    d = [10 ** 9] * nodes
+    global clients
+    hq = []
+    d = [-1]*nodes
     d[start] = 0
-    used = [False] * nodes
-    for i in range(nodes):
-        vertex = -1
-        for j in range(nodes):
-            if  not used[j] and (vertex==-1 or d[j]<d[vertex]):
-                vertex = j
-        if(d[vertex] == 10**9):
-            break;
-        used[vertex] = True
-        for to, len in graph[vertex]:
-            if(d[vertex] + len < d[to]):
-                d[to] = d[vertex] + len
-    for node in range(nodes):
-        if node in clients and max_dist[start] < d[node]:
-            max_dist[start] = d[node]
+    heapq.heappush(hq, (0, start))
+    while len(hq)>0:
+        cur_dist, cur_node = heapq.heappop(hq)
+        for index in range(len(graph[cur_node])):
+            to = graph[cur_node][index][0]
+            dist = graph[cur_node][index][1]
+            if(d[to] == -1 or d[to] > dist + d[cur_node]):
+                d[to] = dist + d[cur_node]
+                heapq.heappush(hq, (d[to], to))
+    for d_i in range(len(d)):
+        if d_i in clients and (max_dist[start] == -1 or max_dist[start] < d[d_i]):
+            max_dist[start] = d[d_i]
+
 
 max_dist = [-1]* nodes
 server_node = -1
-min = 10 ** 9
-def main():
-    global min
-    global server_node
-    global max_dist
-    global nodes
-    global clients
-    for node in range(nodes):
-        if not node in clients:
-            dextra(node)
 
-    for node in range(nodes):
-        if max_dist[node] != -1 and max_dist[node] < min:
-            server_node = node
-            min = max_dist[node]
+for node in range(nodes):
+    if not node in clients:
+        dijkstra(node)
 
-main()
+min = max_dist[0]
+server_node = 1
 
-with open('output.txt', 'a+') as output:
-    output.write("nodes:" + str(nodes) + '\n')
-    output.write("edges:" + str(edges) + '\n')
-    output.write("clients:" + str(clients) + '\n')
-    output.write("graph:\n")
-    for node in range(nodes):
-        output.write(str(graph[node]))
-        output.write('\n')
-    output.write(str(min) + ' ' + str(server_node+1) + '\n')
+for node in range(nodes):
+    if min == -1:
+        min = max_dist[node]
+        server_node = node + 1
+    elif max_dist[node] != -1 and max_dist[node] < min:
+        server_node = node + 1
+        min = max_dist[node]
+
+with open('output.txt', 'w+') as output:
+    output.write(str(min))
